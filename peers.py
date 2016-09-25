@@ -12,7 +12,7 @@
 
 import json
 from charms.leadership import leader_get
-from charms.reactive import RelationBase, hook, scopes, is_state
+from charms.reactive import RelationBase, hook, scopes
 
 
 class ZookeeperPeers(RelationBase):
@@ -30,19 +30,6 @@ class ZookeeperPeers(RelationBase):
         conv.remove_state('{relation_name}.joined')
         conv.set_state('{relation_name}.departed')
 
-    @hook('{peers:zookeeper-quorum}-relation-changed')
-    def toggle_restarted(self):
-        if not is_state('leadership.is_leader'):
-            # Only the leader should set the zkpeer.restarted state
-            # (only the leader will manage to clear the state).
-            return
-        nonce = leader_get('restart_nonce')
-        toggle = self.get_remote('restarted.{}'.format(nonce))
-        if toggle:
-            toggle = json.loads(toggle)
-
-        self.toggle_state('{relation_name}.restarted', toggle)
-
     def dismiss_departed(self):
         for conv in self.conversations():
             conv.remove_state('{relation_name}.departed')
@@ -55,6 +42,17 @@ class ZookeeperPeers(RelationBase):
         nodes = []
         for conv in self.conversations():
             nodes.append((conv.scope, conv.get_remote('private-address')))
+
+        return nodes
+
+    def restarted_nodes(self):
+        nodes = []
+        nonce = leader_get('restart_nonce')
+        if not nonce:
+            return nodes  # We're not restarting if no nonce is set.
+        for conv in self.conversations():
+            if conv.get_remote('restarted.{}'.format(nonce)):
+                nodes.append((conv.scope, conv.get_remote('private-address')))
 
         return nodes
 
