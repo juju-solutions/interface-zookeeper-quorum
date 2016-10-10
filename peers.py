@@ -10,6 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
+from charms.leadership import leader_get
 from charms.reactive import RelationBase, hook, scopes
 
 
@@ -42,3 +44,44 @@ class ZookeeperPeers(RelationBase):
             nodes.append((conv.scope, conv.get_remote('private-address')))
 
         return nodes
+
+    def restarted_nodes(self):
+        nodes = []
+        nonce = leader_get('restart_nonce')
+        if not nonce:
+            return nodes  # We're not restarting if no nonce is set.
+        for conv in self.conversations():
+            if conv.get_remote('restarted.{}'.format(nonce)):
+                nodes.append((conv.scope, conv.get_remote('private-address')))
+
+        return nodes
+
+    def set_zk_leader(self):
+        '''
+        Inform peers that the unit that calls this method is the Zookeeper leader.
+
+        Note that Zookeeper tracks leadership separately from juju;
+        the Zookeeper leader is not necessarily the Juju leader.
+
+        '''
+        for conv in self.conversations():
+            conv.set_remote('is_zk_leader', True)
+
+    def find_zk_leader(self):
+        '''
+        Find the private address of the leader.
+
+        '''
+        for conv in self.conversations():
+            if conv.get_remote('is_zk_leader'):
+                return conv.get_remote('private_address')
+
+    def inform_restart(self):
+        '''
+        Inform our peers that we have restarted, usually as part of a
+        rolling restart.
+
+        '''
+        for conv in self.conversations():
+            nonce = leader_get('restart_nonce')
+            conv.set_remote('restarted.{}'.format(nonce), json.dumps(True))
