@@ -5,6 +5,13 @@ This interface layer handles the communication among Apache Zookeeper peers.
 
 # Usage
 
+## Requirements
+
+This interface relies on states set by the [leadership layer][]. Consumers
+of this interface need to include `layer:leadership` in their `layer.yaml`.
+
+[leadership layer]: https://launchpad.net/layer-leadership
+
 ## Peers
 
 This interface allows the peers of the Zookeeper deployment to be aware of
