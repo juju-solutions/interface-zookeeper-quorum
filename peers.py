@@ -30,6 +30,11 @@ class ZookeeperPeers(RelationBase):
         conv.remove_state('{relation_name}.joined')
         conv.set_state('{relation_name}.departed')
 
+    @hook('{peers:zookeeper-quorum}-relation-changed')
+    def changed(self):
+        conv = self.conversation()
+        conv.set_state('{relation_name}.changed')
+
     def dismiss_departed(self):
         for conv in self.conversations():
             conv.remove_state('{relation_name}.departed')
@@ -37,6 +42,10 @@ class ZookeeperPeers(RelationBase):
     def dismiss_joined(self):
         for conv in self.conversations():
             conv.remove_state('{relation_name}.joined')
+
+    def dismiss_changed(self):
+        for conv in self.conversations():
+            conv.remove_state('{relation_name}.changed')
 
     def get_nodes(self):
         nodes = []
